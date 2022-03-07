@@ -24,21 +24,27 @@
         <div class="filters">
           <ion-item>
             <ion-label>{{ $t("Buffer days") }}</ion-label>
-            <ion-input v-model="numberOfDays" type="text" :placeholder = "$t('all items')" /> 
+            <ion-input v-model="numberOfDays" type="number" :placeholder = "$t('Lead time')" /> 
           </ion-item>
           <ion-item>
             <ion-label>{{ $t("Order buffer") }}</ion-label>
-            <ion-input v-model="numberOfPieces" type="number" />
+            <ion-input v-model="numberOfPieces" type="number" :placeholder = "$t('Safety stock')" />
           </ion-item>
           <ion-item>
             <ion-label>{{ $t("Catalog") }}</ion-label>
-            <ion-select v-model="catalog">
+            <ion-select selected-text="Backorder" v-model="catalog">
               <ion-select-option>{{ $t("Backorder") }}</ion-select-option>
               <ion-select-option>{{ $t("Preorder") }}</ion-select-option>
             </ion-select>
           </ion-item>
+          <ion-item>
+            <ion-label>{{ $t("Facility") }}</ion-label>
+            <ion-select v-model="facilityId">
+              <ion-select-option v-for="facility in facilities" :key="facility" :value="facility.externalId">{{ facility.facilityName }}</ion-select-option>
+            </ion-select>
+          </ion-item>
           <ion-button expand="block" fill="outline" @click="apply">{{ $t("Apply") }}</ion-button>
-        </div> 
+        </div>
       </div>  
 
       <div v-for="id in getGroupList(ordersList.items)" :key="id" >
@@ -84,6 +90,7 @@
   </ion-page>
 </template>   
 <script lang="ts">
+import { OrderService } from "@/services/OrderService";
 import Image from '@/components/Image.vue';
 import parentProductPopover from '@/components/ProductPopover.vue'
 import { defineComponent } from 'vue';
@@ -119,18 +126,37 @@ export default defineComponent({
       ordersList: 'order/getOrder',
       getProduct: 'product/getProduct',
     }),
-    orderId(){
+    orderId() {
       return (this as any).ordersList.items[0]?.orderId
-    } 
+    }
   },
   data() {
     return {
       numberOfDays: 0,
       numberOfPieces: 0,
       catalog: "",
+      facilityId: "",
+      facilities: [] as any
+
     }
   },
+  mounted(){
+   this.fetchFacilities();
+  },
   methods: {
+    async fetchFacilities(){
+     const payload = {
+       "inputFields": {
+         "externalId_fld0_op": "not-empty",
+       },
+       "fieldList": ["externalId", "facilityName"],
+      "entityName": "Facility",
+      "noConditionFind": "Y"
+     }
+     const resp = await OrderService.getFacilities(payload);
+     this.facilities = resp.data.docs;
+
+    },
     async UpdateProduct(ev: Event, id: any, isVirtual: boolean, item: any) {
       const popover = await popoverController
         .create({
@@ -160,7 +186,8 @@ export default defineComponent({
         if (item.isSelected) {
           item.quantityOrdered -= this.numberOfPieces;
           item.arrivalDate = DateTime.fromFormat(item.arrivalDate, "D").plus({ days: this.numberOfDays }).toFormat('MM/dd/yyyy');
-          item.isNewProduct = this.catalog == "Preorder"
+          item.isNewProduct = this.catalog == "Preorder";
+          item.facilityId = this.facilityId;
         }
       })
       this.store.dispatch('order/updatedOrderListItems', this.ordersList.items);
