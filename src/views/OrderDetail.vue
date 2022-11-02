@@ -97,7 +97,7 @@
 
           <div />
           
-          <ion-checkbox :checked="isParentProductChecked(id)" @click="handleOnChange = true" @ionChange="selectParentProduct(id, $event)" />
+          <ion-checkbox :checked="isParentProductChecked(id)" @click="isParentProductUpdated = true" @ionChange="selectParentProduct(id, $event)" />
 
           <ion-button fill="clear" color="medium" @click="UpdateProduct($event, id, true, getParentInformation(id, ordersList.items))">
             <ion-icon slot="icon-only" :icon="ellipsisVerticalOutline" />
@@ -205,7 +205,7 @@ export default defineComponent({
       facilities: [] as any,
       queryString: "",
       searchedProduct: {} as any,
-      handleOnChange: false
+      isParentProductUpdated: false
     }
   },
   ionViewDidEnter(){
@@ -371,14 +371,14 @@ export default defineComponent({
       })
     },
     selectParentProduct(parentProductId: any, event: any) {
-      if(this.handleOnChange){
+      if(this.isParentProductUpdated){
         this.ordersList.items.forEach((item: any) => {
           if (item.parentProductId === parentProductId) {
             item.isSelected = event.detail.checked;
           }
         })
       }
-      this.handleOnChange = false;
+      this.isParentProductUpdated = false;
     }
   },
   setup() {
